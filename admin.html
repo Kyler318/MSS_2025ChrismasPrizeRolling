@@ -3,90 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>抽獎名單管理</title>
+    <title>🎄 抽獎後台管理</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body { background: #f0f0f0; overflow: auto; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { padding: 10px; flex: 1; border-radius: 5px; border: 1px solid #ccc;}
-        h2 { color: #c41e3a; }
+        body { background: #f8f9fa; color: #333; font-family: sans-serif; padding: 20px; overflow-y: auto; height: auto;}
+        h2 { border-left: 5px solid #c41e3a; padding-left: 10px; color: #c41e3a; }
+        
+        .section { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        
+        /* 輸入框樣式 */
+        input, textarea { width: 100%; padding: 10px; box-sizing: border-box; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        textarea { height: 100px; font-family: monospace; }
+        
+        .btn-group { display: flex; gap: 10px; }
+        .btn-admin { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        .btn-import { background: #007bff; }
+        .btn-delete { background: #dc3545; color: white; padding: 5px 12px; border:none; border-radius:4px; cursor:pointer;}
+        
+        .user-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #eee; align-items: center; }
+        .user-item:last-child { border-bottom: none; }
     </style>
 </head>
-<body class="admin-container">
-    <h2>📋 人員管理 (Admin)</h2>
-    
-    <div class="input-group">   
-        <input type="text" id="nameInput" placeholder="輸入名字...">
-        <button id="addBtn" class="btn" style="font-size: 16px; padding: 10px;">新增</button>
-    </div>
-    
-    <div id="userList">
+<body>
+
+    <div class="section">
+        <h2>🧑‍🎄 單筆新增</h2>
+        <div class="btn-group">
+            <input type="text" id="nameInput" placeholder="輸入姓名 (例如: 大明)">
+            <button id="addBtn" class="btn-admin">新增</button>
         </div>
+    </div>
+
+    <div class="section">
+        <h2>📋 JSON 批量匯入</h2>
+        <p style="font-size:0.9em; color:#666;">請貼上 JSON 陣列，例如：<code>["小明", "小華", "小美"]</code></p>
+        <textarea id="jsonInput" placeholder='["聖誕老人", "魯道夫", "精靈一號"]'></textarea>
+        <button id="importBtn" class="btn-admin btn-import">批量匯入名單</button>
+    </div>
+
+    <div class="section">
+        <h2>📃 目前名單 (<span id="count">0</span> 人)</h2>
+        <div id="userList">載入中...</div>
+    </div>
 
     <script type="module">
+        // ---------------------------------------------------------
+        // 重要：請確保這裡的 Config 與 index.html 完全一致
+        // ---------------------------------------------------------
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getDatabase, ref, onValue, push, remove, child } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        import { getDatabase, ref, push, onValue, remove, child } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-        // TODO: 這裡也要填入一樣的 Firebase Config
+        // TODO: 請填入你的 Firebase Config
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            databaseURL: "YOUR_DATABASE_URL",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyD0Y08KBDzL0lyfqedDR7CAAjITWkD5J-o",
+            authDomain: "chrismas2025prizerolling.firebaseapp.com",
+            databaseURL: "https://chrismas2025prizerolling-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "chrismas2025prizerolling",
+            storageBucket: "chrismas2025prizerolling.firebasestorage.app",
+            messagingSenderId: "930100253668",
+            appId: "1:930100253668:web:7839e115cadb93fc05adf1"
         };
-
+        
+        // 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const usersRef = ref(db, 'users');
 
-        // 監聽並顯示名單
+        // 1. 單筆新增功能
+        document.getElementById('addBtn').addEventListener('click', () => {
+            const input = document.getElementById('nameInput');
+            const name = input.value.trim();
+            
+            if (!name) return alert("請輸入名字！");
+
+            push(usersRef, {
+                name: name,
+                winner: false
+            })
+            .then(() => {
+                input.value = ''; // 清空輸入框
+                // 成功不彈窗，體驗較好
+                console.log("新增成功"); 
+            })
+            .catch((error) => {
+                alert("新增失敗，請檢查 Console 錯誤訊息");
+                console.error("Firebase Error:", error);
+            });
+        });
+
+        // 2. JSON 批量匯入功能
+        document.getElementById('importBtn').addEventListener('click', () => {
+            const raw = document.getElementById('jsonInput').value;
+            if (!raw) return;
+
+            try {
+                const nameList = JSON.parse(raw);
+                
+                if (!Array.isArray(nameList)) {
+                    alert("格式錯誤：必須是陣列 (Array)，例如 ['A', 'B']");
+                    return;
+                }
+
+                if (!confirm(`確定要匯入 ${nameList.length} 筆資料嗎？`)) return;
+
+                // 迴圈寫入
+                let successCount = 0;
+                nameList.forEach(name => {
+                    // 這裡假設 JSON 是純字串陣列 ["name1", "name2"]
+                    // 如果你的 JSON 是物件陣列 [{"name":"name1"},...], 請改為 name.name
+                    push(usersRef, {
+                        name: String(name),
+                        winner: false
+                    });
+                    successCount++;
+                });
+
+                alert(`已送出 ${successCount} 筆資料寫入請求！`);
+                document.getElementById('jsonInput').value = '';
+
+            } catch (e) {
+                alert("JSON 格式解析失敗！請確認格式正確。\n錯誤訊息: " + e.message);
+            }
+        });
+
+        // 3. 監聽並顯示列表
         onValue(usersRef, (snapshot) => {
             const listDiv = document.getElementById('userList');
+            const countSpan = document.getElementById('count');
             listDiv.innerHTML = '';
+            
             const data = snapshot.val();
             
             if (data) {
-                Object.keys(data).forEach(key => {
+                const keys = Object.keys(data);
+                countSpan.innerText = keys.length;
+
+                keys.reverse().forEach(key => { // 新的在上面
                     const user = data[key];
-                    // 即使中獎了，在後台也可以顯示，標記一下即可
                     const div = document.createElement('div');
                     div.className = 'user-item';
+                    
+                    // 根據是否中獎顯示不同顏色
+                    const statusStyle = user.winner ? 'color:green; font-weight:bold;' : 'color:#333;';
+                    const statusText = user.winner ? '🎉 已中獎' : '';
+
                     div.innerHTML = `
-                        <span style="color: ${user.winner ? 'green' : 'black'}">
-                            ${user.name} ${user.winner ? '(已中獎)' : ''}
+                        <span style="${statusStyle}">
+                            ${user.name} ${statusText}
                         </span>
-                        <button class="delete-btn" data-id="${key}">移除</button>
+                        <button class="btn-delete" data-id="${key}">移除</button>
                     `;
                     listDiv.appendChild(div);
                 });
 
-                // 綁定刪除按鈕事件
-                document.querySelectorAll('.delete-btn').forEach(btn => {
+                // 綁定刪除按鈕
+                document.querySelectorAll('.btn-delete').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const id = e.target.getAttribute('data-id');
-                        if(confirm('確定要移除這個人嗎？')) {
+                        if (confirm('確定移除？')) {
                             remove(child(usersRef, id));
                         }
                     });
                 });
             } else {
-                listDiv.innerHTML = '<p>目前沒有名單。</p>';
-            }
-        });
-
-        // 新增人員
-        document.getElementById('addBtn').addEventListener('click', () => {
-            const input = document.getElementById('nameInput');
-            const name = input.value.trim();
-            if (name) {
-                push(usersRef, {
-                    name: name,
-                    winner: false // 預設未中獎
-                });
-                input.value = '';
+                listDiv.innerHTML = '<p style="text-align:center; color:#999;">目前沒有資料</p>';
+                countSpan.innerText = '0';
             }
         });
     </script>

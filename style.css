@@ -112,3 +112,22 @@ body {
     border-radius: 5px;
     cursor: pointer;
 }
+
+.admin-link {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.5);
+        color: gold;
+        padding: 10px 20px;
+        border-radius: 30px;
+        text-decoration: none;
+        border: 1px solid gold;
+        z-index: 9999; /* 確保在最上層 */
+        font-family: sans-serif;
+        transition: all 0.3s;
+    }
+    .admin-link:hover {
+        background: #c41e3a; /* 聖誕紅 */
+        color: white;
+    }
