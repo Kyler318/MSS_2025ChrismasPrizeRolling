@@ -1,1 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽獎名單管理</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #f0f0f0; overflow: auto; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { padding: 10px; flex: 1; border-radius: 5px; border: 1px solid #ccc;}
+        h2 { color: #c41e3a; }
+    </style>
+</head>
+<body class="admin-container">
+    <h2>📋 人員管理 (Admin)</h2>
+    
+    <div class="input-group">   
+        <input type="text" id="nameInput" placeholder="輸入名字...">
+        <button id="addBtn" class="btn" style="font-size: 16px; padding: 10px;">新增</button>
+    </div>
+    
+    <div id="userList">
+        </div>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getDatabase, ref, onValue, push, remove, child } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+        // TODO: 這裡也要填入一樣的 Firebase Config
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const usersRef = ref(db, 'users');
+
+        // 監聽並顯示名單
+        onValue(usersRef, (snapshot) => {
+            const listDiv = document.getElementById('userList');
+            listDiv.innerHTML = '';
+            const data = snapshot.val();
+            
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    const user = data[key];
+                    // 即使中獎了，在後台也可以顯示，標記一下即可
+                    const div = document.createElement('div');
+                    div.className = 'user-item';
+                    div.innerHTML = `
+                        <span style="color: ${user.winner ? 'green' : 'black'}">
+                            ${user.name} ${user.winner ? '(已中獎)' : ''}
+                        </span>
+                        <button class="delete-btn" data-id="${key}">移除</button>
+                    `;
+                    listDiv.appendChild(div);
+                });
+
+                // 綁定刪除按鈕事件
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = e.target.getAttribute('data-id');
+                        if(confirm('確定要移除這個人嗎？')) {
+                            remove(child(usersRef, id));
+                        }
+                    });
+                });
+            } else {
+                listDiv.innerHTML = '<p>目前沒有名單。</p>';
+            }
+        });
+
+        // 新增人員
+        document.getElementById('addBtn').addEventListener('click', () => {
+            const input = document.getElementById('nameInput');
+            const name = input.value.trim();
+            if (name) {
+                push(usersRef, {
+                    name: name,
+                    winner: false // 預設未中獎
+                });
+                input.value = '';
+            }
+        });
+    </script>
+</body>
+</html>

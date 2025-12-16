@@ -1,1 +1,114 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&display=swap');
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Mountains of Christmas', cursive; /* 聖誕字體 */
+    background: radial-gradient(circle, #0f4d32 0%, #062115 100%); /* 深綠色背景 */
+    color: #fff;
+    overflow: hidden;
+    height: 100vh;
+}
+
+/* 雪花背景動畫 */
+.snowflake {
+    position: fixed;
+    top: -10px;
+    color: #fff;
+    font-size: 1em;
+    user-select: none;
+    z-index: 1;
+    animation: fall linear infinite;
+}
+
+@keyframes fall {
+    to { transform: translateY(105vh); }
+}
+
+/* 抽獎頁面容器 */
+#cloud-container {
+    position: relative;
+    width: 100%;
+    height: 80vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1000px;
+}
+
+/* 漂浮的名字 */
+.name-tag {
+    position: absolute;
+    font-size: 24px;
+    padding: 10px 20px;
+    background: rgba(255, 0, 0, 0.3);
+    border-radius: 20px;
+    border: 1px solid gold;
+    color: #ffd700;
+    transition: all 0.5s ease;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    white-space: nowrap;
+}
+
+/* 中獎者樣式 */
+.winner {
+    font-size: 80px !important;
+    background: #c41e3a !important; /* 聖誕紅 */
+    z-index: 1000 !important;
+    border: 5px solid gold !important;
+    box-shadow: 0 0 50px gold, 0 0 100px red !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) scale(1.5) !important;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: translate(-50%, -50%) scale(1.5); }
+    50% { transform: translate(-50%, -50%) scale(1.6); }
+    100% { transform: translate(-50%, -50%) scale(1.5); }
+}
+
+/* 按鈕樣式 */
+.btn {
+    background: #c41e3a;
+    color: white;
+    border: 2px solid gold;
+    padding: 15px 30px;
+    font-size: 24px;
+    font-family: 'Mountains of Christmas', cursive;
+    cursor: pointer;
+    border-radius: 50px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    transition: transform 0.2s;
+}
+
+.btn:active { transform: scale(0.95); }
+.controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 10; }
+
+/* 管理頁面樣式調整 */
+.admin-container {
+    padding: 20px;
+    height: 100vh;
+    overflow-y: auto;
+    background: #fff;
+    color: #333;
+    font-family: sans-serif;
+}
+.user-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    align-items: center;
+}
+.delete-btn {
+    background: red;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
