@@ -12,6 +12,11 @@
     </audio>
 
     <div id="snow-container"></div>
+    <div id="background-decorations">
+        <div class="deco-item deco-tree"></div>
+        <div class="deco-item deco-gifts"></div>
+        <div class="deco-item deco-stockings"></div>
+    </div>
     <div id="cloud-container"></div>
 
     <div class="controls">
@@ -29,7 +34,6 @@
         const firebaseConfig = {
             apiKey: "AIzaSyD0Y08KBDzL0lyfqedDR7CAAjITWkD5J-o",
             authDomain: "chrismas2025prizerolling.firebaseapp.com",
-            // 修正：移除了結尾的斜線 '/'
             databaseURL: "https://chrismas2025prizerolling-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "chrismas2025prizerolling",
             storageBucket: "chrismas2025prizerolling.firebasestorage.app",
@@ -47,40 +51,70 @@
 
         // 監聽資料庫
         onValue(usersRef, (snapshot) => {
-            if (isDrawing) return;
-
             const data = snapshot.val();
-            const cloudContainer = document.getElementById('cloud-container');
-            cloudContainer.innerHTML = ''; 
             
-            pool = [];
-            totalWinnerCount = 0;
+            // 修正重點 1：先計算數據 (移到 isDrawing 檢查之前)
+            // 這樣無論是否在抽獎動畫中，數據和輪數都會即時更新
+            let tempPool = [];
+            let tempWinnerCount = 0;
 
             if (data) {
                 Object.keys(data).forEach(key => {
                     const user = data[key];
                     if (user.winner) {
-                        totalWinnerCount++;
+                        tempWinnerCount++;
                     } else {
-                        pool.push({ id: key, name: user.name });
-                        createNameTag(user.name); 
+                        tempPool.push({ id: key, name: user.name });
                     }
                 });
-            } else {
-                // 如果沒有資料，顯示提示
-                cloudContainer.innerHTML = '<h1 style="color:gold; text-shadow:2px 2px red;">請先至後台新增名單</h1>';
+            }
+
+            // 更新全域變數
+            pool = tempPool;
+            totalWinnerCount = tempWinnerCount;
+
+            // 修正重點 2：即時更新輪數文字
+            updateRoundInfo();
+
+            // 3. 如果正在抽獎，停止「重繪 DOM」，以免打斷動畫或清空中獎者展示
+            // (只阻擋下方的 createNameTag，不阻擋上方的 updateRoundInfo)
+            if (isDrawing) return;
+
+            // 4. 重繪漂浮名單
+            const cloudContainer = document.getElementById('cloud-container');
+            cloudContainer.innerHTML = ''; 
+            
+            if (pool.length > 0) {
+                pool.forEach(p => createNameTag(p.name));
+            } else if (totalWinnerCount === 0) {
+                 // 只有在真的沒資料且沒人中獎時才顯示提示
+                 cloudContainer.innerHTML = '<h1 style="color:gold; text-shadow:2px 2px red;">請先至後台新增名單</h1>';
             }
         });
+
+        function updateRoundInfo() {
+            let currentRound = 1;
+            // 規則：前66人(22輪)每輪3人，之後每輪1人
+            if (totalWinnerCount < 66) {
+                currentRound = Math.floor(totalWinnerCount / 3) + 1;
+            } else {
+                currentRound = 22 + (totalWinnerCount - 66) + 1;
+            }
+            document.getElementById('round-info').innerText = `🏆 第 ${currentRound} 輪`;
+        }
 
         function createNameTag(name) {
             const tag = document.createElement('div');
             tag.className = 'name-tag';
             tag.innerText = name;
-            tag.style.left = Math.random() * 90 + '%';
-            tag.style.top = Math.random() * 90 + '%';
             
-            const duration = Math.random() * 3 + 2;
-            tag.style.transition = `top ${duration}s ease-in-out, left ${duration}s ease-in-out`;
+            // 使用 transform 替代 top/left 以提升效能
+            const startX = Math.random() * 90; 
+            const startY = Math.random() * 80;
+            tag.style.transform = `translate3d(${startX}vw, ${startY}vh, 0)`;
+
+            const duration = Math.random() * 3 + 4; 
+            tag.style.transition = `transform ${duration}s ease-in-out`;
             
             document.getElementById('cloud-container').appendChild(tag);
             animateTag(tag);
@@ -92,9 +126,10 @@
                     clearInterval(interval);
                     return;
                 }
-                tag.style.left = Math.random() * 90 + '%';
-                tag.style.top = Math.random() * 90 + '%';
-            }, 3000);
+                const nextX = Math.random() * 90;
+                const nextY = Math.random() * 80;
+                tag.style.transform = `translate3d(${nextX}vw, ${nextY}vh, 0)`;
+            }, 4000);
         }
 
         // 雪花特效
@@ -125,7 +160,6 @@
             drawBtn.disabled = true;
             drawBtn.innerText = "抽獎中...";
 
-            // 規則：前66人中獎者 (22輪) 一次抽3個，之後一次抽1個
             let batchSize = 1;
             if (totalWinnerCount < 66) {
                 batchSize = 3;
@@ -133,12 +167,11 @@
             if (pool.length < batchSize) batchSize = pool.length;
 
             const tags = document.querySelectorAll('.name-tag');
-            tags.forEach(tag => tag.style.transition = "all 0.1s linear");
-
+            
             let counter = 0;
             const shuffleInterval = setInterval(() => {
                 tags.forEach(t => t.style.background = 'rgba(255,0,0,0.3)');
-                for(let i=0; i<Math.min(batchSize, tags.length); i++){
+                for(let i=0; i<Math.min(batchSize + 2, tags.length); i++){
                     const randomTag = tags[Math.floor(Math.random() * tags.length)];
                     if(randomTag) randomTag.style.background = 'gold';
                 }
@@ -170,7 +203,7 @@
                 updates[`/users/${winner.id}/winner`] = true;
 
                 const winTag = document.createElement('div');
-                winTag.className = 'name-tag winner';
+                winTag.className = 'name-tag winner'; 
                 if (count > 1) winTag.classList.add('multi'); 
                 winTag.innerText = winner.name;
                 
@@ -184,11 +217,8 @@
                 }
 
                 winTag.style.left = leftPos + '%';
-                winTag.style.top = '50%';
                 container.appendChild(winTag);
             });
-
-            const winnerNames = winners.map(w => w.name).join("、");
 
             setTimeout(() => {
                 update(ref(db), updates);
