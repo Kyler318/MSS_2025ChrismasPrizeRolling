@@ -53,14 +53,20 @@ body {
 }
 
 /* 中獎者樣式 */
+/* 中獎者樣式 */
 .winner {
     font-size: 80px !important;
-    background: #c41e3a !important; /* 聖誕紅 */
+    background: #c41e3a !important;
     z-index: 1000 !important;
     border: 5px solid gold !important;
     box-shadow: 0 0 50px gold, 0 0 100px red !important;
-    top: 50% !important;
-    left: 50% !important;
+    
+    /* 修改重點：移除 top 和 left 的 !important */
+    /* 讓 JS 決定的 left: 20%, 50%, 80% 能生效 */
+    top: 50%;
+    left: 50%;
+    
+    /* transform 保持不變，用來居中對齊 */
     transform: translate(-50%, -50%) scale(1.5) !important;
     animation: pulse 1s infinite;
 }

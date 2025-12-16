@@ -185,6 +185,8 @@
                 container.appendChild(winTag);
             });
 
+            const winnerNames = winners.map(w => w.name).join("、");
+
             setTimeout(() => {
                 update(ref(db), updates);
                 isDrawing = false;
