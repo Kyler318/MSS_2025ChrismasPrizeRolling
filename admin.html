@@ -4,16 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎄 抽獎後台管理</title>
-    <link rel="stylesheet" href="style.css">
     <style>
-        body { background: #f8f9fa; color: #333; font-family: sans-serif; padding: 20px; }
+        body { 
+            background: #f8f9fa; 
+            color: #333; 
+            font-family: sans-serif; 
+            padding: 20px; 
+            overflow: auto !important; /* 允許滾動 */
+            background: #f0f0f0 !important;
+        }
         h2 { border-left: 5px solid #c41e3a; padding-left: 10px; color: #c41e3a; }
         .section { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         input, textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box;}
+        
+        /* 按鈕樣式 */
         .btn-admin { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-        .btn-delete { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
         .btn-test { background: #6f42c1; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; } 
-        .user-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
+        .btn-delete { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        
+        /* 新增：危險操作按鈕 (重置數據庫用) */
+        .btn-danger {
+            background-color: #dc3545; /* 紅色 */
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%; 
+            margin-top: 10px;
+            font-size: 16px;
+        }
+        .btn-danger:hover { background-color: #c82333; }
+
+        .user-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
     </style>
 </head>
 <body>
@@ -21,6 +44,10 @@
         <h2>🧪 測試功能</h2>
         <p>快速生成測試資料</p>
         <button id="testDataBtn" class="btn-test">產生 300 個測試人員</button>
+        
+        <button id="reset-db-btn" class="btn-danger">
+            🗑️ 重置數據庫 (清空所有資料)
+        </button>
     </div>
 
     <div class="section">
@@ -42,12 +69,12 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue, remove, child } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        // ✅ 修正重點：這裡加入了 'set'
+        import { getDatabase, ref, push, onValue, remove, child, set } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD0Y08KBDzL0lyfqedDR7CAAjITWkD5J-o",
             authDomain: "chrismas2025prizerolling.firebaseapp.com",
-            // ✅ 已修正：移除了結尾的斜線 /
             databaseURL: "https://chrismas2025prizerolling-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "chrismas2025prizerolling",
             storageBucket: "chrismas2025prizerolling.firebasestorage.app",
@@ -59,8 +86,7 @@
         const db = getDatabase(app);
         const usersRef = ref(db, 'users');
 
-        // 監聽並顯示列表
-        // --- 列表顯示與刪除 (優化版) ---
+        // --- 列表顯示 ---
         onValue(usersRef, (snapshot) => {
             const listDiv = document.getElementById('userList');
             const data = snapshot.val();
@@ -97,15 +123,11 @@
                 document.getElementById('count').innerText = '0';
             }
         }, (error) => {
-            // ★★★ 這裡新增了錯誤捕捉 ★★★
             console.error(error);
-            document.getElementById('userList').innerHTML = 
-                `<p style="color:red; text-align:center;">
-                    讀取失敗：${error.message}<br>
-                    (請檢查 Firebase Rules 是否已設為 true)
-                </p>`;
+            document.getElementById('userList').innerHTML = `<p style="color:red; text-align:center;">讀取失敗：${error.message}</p>`;
         });
-        // 綁定按鈕功能
+
+        // --- 測試資料按鈕 ---
         document.getElementById('testDataBtn').addEventListener('click', () => {
             if(!confirm("確定產生 300 筆資料？")) return;
             const promises = [];
@@ -113,6 +135,31 @@
             Promise.all(promises).then(() => alert("完成！"));
         });
 
+        // --- 重置數據庫按鈕 (已修正 set 未定義問題) ---
+        const resetBtn = document.getElementById('reset-db-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                const isConfirmed = confirm('⚠️ 警告！\n\n確定要「清空」所有數據嗎？\n此操作無法復原，所有參賽者資料將被刪除！');
+
+                if (isConfirmed) {
+                    const doubleCheck = confirm('再次確認：真的要刪除嗎？');
+                    if (doubleCheck) {
+                        // 使用 set 將 users 節點設為 null (即刪除)
+                        set(usersRef, null)
+                            .then(() => {
+                                alert('✅ 數據庫已重置成功！');
+                                location.reload();
+                            })
+                            .catch((error) => {
+                                console.error("重置失敗:", error);
+                                alert('❌ 重置失敗，請檢查 Console 錯誤訊息');
+                            });
+                    }
+                }
+            });
+        }
+
+        // --- 新增按鈕 ---
         document.getElementById('addBtn').addEventListener('click', () => {
             const input = document.getElementById('nameInput');
             if(input.value.trim()) {
@@ -121,6 +168,7 @@
             }
         });
 
+        // --- JSON 匯入按鈕 ---
         document.getElementById('importBtn').addEventListener('click', () => {
             try {
                 const list = JSON.parse(document.getElementById('jsonInput').value);

@@ -50,12 +50,15 @@ body {
     cursor: pointer;
     box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
     white-space: nowrap;
+    will-change: transform, top, left; 
+    /* ✅ 效能優化關鍵 2：減少陰影擴散半徑，或者在移動時暫時移除陰影 */
+    /* 如果還是卡，可以嘗試把 box-shadow 註解掉測試 */
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
 }
 
 /* 中獎者樣式 */
-/* 中獎者樣式 */
 .winner {
-    font-size: 80px !important;
+    font-size: 30px !important;
     background: #c41e3a !important;
     z-index: 1000 !important;
     border: 5px solid gold !important;
@@ -141,7 +144,28 @@ body {
         font-family: sans-serif;
         transition: all 0.3s;
     }
-    .admin-link:hover {
-        background: #c41e3a; /* 聖誕紅 */
-        color: white;
-    }
+.admin-link:hover {
+    background: #c41e3a; /* 聖誕紅 */
+    color: white;
+}
+    /* 危險操作按鈕樣式 */
+.btn-danger {
+    background-color: #dc3545; /* 紅色 */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+    width: 100%; /* 讓按鈕寬度跟上面的一樣 */
+    box-sizing: border-box;
+}
+
+.btn-danger:hover {
+    background-color: #c82333; /* 深紅色 hover 效果 */
+}
+
+.btn-danger:active {
+    transform: scale(0.98);
+}
