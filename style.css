@@ -95,13 +95,21 @@ body {
 .controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 10; }
 
 /* 管理頁面樣式調整 */
+/* 管理頁面樣式調整 */
 .admin-container {
+    /* 加入這行：確保 padding 不會讓高度超過 100vh */
+    box-sizing: border-box; 
+    
     padding: 20px;
     height: 100vh;
     overflow-y: auto;
     background: #fff;
     color: #333;
     font-family: sans-serif;
+    
+    /* 建議加入：確保它蓋過 body 的背景設定 */
+    position: relative; 
+    z-index: 10;
 }
 .user-item {
     display: flex;
