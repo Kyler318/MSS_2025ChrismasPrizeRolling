@@ -24,7 +24,7 @@
     </div>
 
     <div class="section">
-        <h2>🧑‍🎄 單筆新增 (補登遲到人員)</h2>
+        <h2>🧑‍🎄 單筆新增 (補登遲到)</h2>
         <input type="text" id="nameInput" placeholder="輸入姓名...">
         <button id="addBtn" class="btn-admin">新增</button>
     </div>
@@ -37,18 +37,17 @@
 
     <div class="section">
         <h2>📃 目前名單 (<span id="count">0</span> 人)</h2>
-        <div id="userList">讀取中...</div>
+        <div id="userList">載入中... (如果很久沒反應，請檢查 F12 Console)</div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove, child } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-        // 你的 Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyD0Y08KBDzL0lyfqedDR7CAAjITWkD5J-o",
             authDomain: "chrismas2025prizerolling.firebaseapp.com",
-            // 注意：網址結尾不要有斜線
+            // ✅ 已修正：移除了結尾的斜線 /
             databaseURL: "https://chrismas2025prizerolling-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "chrismas2025prizerolling",
             storageBucket: "chrismas2025prizerolling.firebasestorage.app",
@@ -60,47 +59,8 @@
         const db = getDatabase(app);
         const usersRef = ref(db, 'users');
 
-        // --- 測試資料生成 ---
-        document.getElementById('testDataBtn').addEventListener('click', () => {
-            if(!confirm("確定要插入 300 筆測試資料嗎？")) return;
-            const btn = document.getElementById('testDataBtn');
-            btn.disabled = true;
-            btn.innerText = "寫入中...";
-            
-            const promises = [];
-            for(let i=1; i<=300; i++) {
-                promises.push(push(usersRef, { name: `測試人員${i}`, winner: false }));
-            }
-            Promise.all(promises).then(() => {
-                alert("300 筆資料已建立！");
-                btn.disabled = false;
-                btn.innerText = "產生 300 個測試人員";
-            });
-        });
-
-        // --- 單筆新增 ---
-        document.getElementById('addBtn').addEventListener('click', () => {
-            const input = document.getElementById('nameInput');
-            if (input.value.trim()) {
-                push(usersRef, { name: input.value.trim(), winner: false });
-                input.value = '';
-            }
-        });
-
-        // --- 批量匯入 ---
-        document.getElementById('importBtn').addEventListener('click', () => {
-            try {
-                const list = JSON.parse(document.getElementById('jsonInput').value);
-                if (Array.isArray(list)) {
-                    if(!confirm(`確定匯入 ${list.length} 筆？`)) return;
-                    list.forEach(name => push(usersRef, { name: String(name), winner: false }));
-                    alert("匯入完成");
-                    document.getElementById('jsonInput').value = '';
-                }
-            } catch(e) { alert("JSON 格式錯誤"); }
-        });
-
-        // --- 列表顯示與刪除 ---
+        // 監聽並顯示列表
+        // --- 列表顯示與刪除 (優化版) ---
         onValue(usersRef, (snapshot) => {
             const listDiv = document.getElementById('userList');
             const data = snapshot.val();
@@ -109,12 +69,11 @@
             if (data) {
                 const keys = Object.keys(data);
                 document.getElementById('count').innerText = keys.length;
-                keys.reverse().forEach(key => { // 讓新加入的顯示在最上面
+                keys.reverse().forEach(key => { 
                     const u = data[key];
                     const div = document.createElement('div');
                     div.className = 'user-item';
                     
-                    // 修正點：這裡只建立按鈕，不加 onclick="..."，統一由下方的 addEventListener 處理
                     div.innerHTML = `
                         <span style="${u.winner ? 'color:green;font-weight:bold' : ''}">
                             ${u.name} ${u.winner ? '(已中)' : ''}
@@ -124,13 +83,10 @@
                     listDiv.appendChild(div);
                 });
 
-                // 為每個「移除」按鈕綁定事件
                 document.querySelectorAll('.btn-delete').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const id = e.target.getAttribute('data-id');
                         if(confirm('確定要從資料庫移除這個人嗎？(不可復原)')) {
-                            // 這行會通知 Firebase 刪除資料
-                            // 當資料庫刪除後，上面的 onValue 會再次觸發，自動更新畫面
                             remove(child(usersRef, id))
                                 .catch(err => alert("刪除失敗：" + err.message));
                         }
@@ -140,6 +96,40 @@
                 listDiv.innerHTML = '<p style="text-align:center;color:#888">目前沒有名單</p>';
                 document.getElementById('count').innerText = '0';
             }
+        }, (error) => {
+            // ★★★ 這裡新增了錯誤捕捉 ★★★
+            console.error(error);
+            document.getElementById('userList').innerHTML = 
+                `<p style="color:red; text-align:center;">
+                    讀取失敗：${error.message}<br>
+                    (請檢查 Firebase Rules 是否已設為 true)
+                </p>`;
+        });
+        // 綁定按鈕功能
+        document.getElementById('testDataBtn').addEventListener('click', () => {
+            if(!confirm("確定產生 300 筆資料？")) return;
+            const promises = [];
+            for(let i=1; i<=300; i++) promises.push(push(usersRef, { name: `測試人員${i}`, winner: false }));
+            Promise.all(promises).then(() => alert("完成！"));
+        });
+
+        document.getElementById('addBtn').addEventListener('click', () => {
+            const input = document.getElementById('nameInput');
+            if(input.value.trim()) {
+                push(usersRef, { name: input.value.trim(), winner: false });
+                input.value = '';
+            }
+        });
+
+        document.getElementById('importBtn').addEventListener('click', () => {
+            try {
+                const list = JSON.parse(document.getElementById('jsonInput').value);
+                if(Array.isArray(list) && confirm(`匯入 ${list.length} 筆？`)) {
+                    list.forEach(n => push(usersRef, { name: String(n), winner: false }));
+                    alert("匯入完成");
+                    document.getElementById('jsonInput').value = '';
+                }
+            } catch(e) { alert("JSON 格式錯誤"); }
         });
     </script>
 </body>
