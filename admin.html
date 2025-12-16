@@ -24,7 +24,7 @@
     </div>
 
     <div class="section">
-        <h2>🧑‍🎄 單筆新增</h2>
+        <h2>🧑‍🎄 單筆新增 (補登遲到人員)</h2>
         <input type="text" id="nameInput" placeholder="輸入姓名...">
         <button id="addBtn" class="btn-admin">新增</button>
     </div>
@@ -36,7 +36,7 @@
     </div>
 
     <div class="section">
-        <h2>📃 名單列表 (<span id="count">0</span> 人)</h2>
+        <h2>📃 目前名單 (<span id="count">0</span> 人)</h2>
         <div id="userList">讀取中...</div>
     </div>
 
@@ -44,10 +44,11 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove, child } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
+        // 你的 Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyD0Y08KBDzL0lyfqedDR7CAAjITWkD5J-o",
             authDomain: "chrismas2025prizerolling.firebaseapp.com",
-            // 修正：移除了結尾的斜線
+            // 注意：網址結尾不要有斜線
             databaseURL: "https://chrismas2025prizerolling-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "chrismas2025prizerolling",
             storageBucket: "chrismas2025prizerolling.firebasestorage.app",
@@ -108,12 +109,12 @@
             if (data) {
                 const keys = Object.keys(data);
                 document.getElementById('count').innerText = keys.length;
-                keys.reverse().forEach(key => {
+                keys.reverse().forEach(key => { // 讓新加入的顯示在最上面
                     const u = data[key];
                     const div = document.createElement('div');
                     div.className = 'user-item';
                     
-                    // 修正：刪除按鈕不使用 onclick，改用 addEventListener
+                    // 修正點：這裡只建立按鈕，不加 onclick="..."，統一由下方的 addEventListener 處理
                     div.innerHTML = `
                         <span style="${u.winner ? 'color:green;font-weight:bold' : ''}">
                             ${u.name} ${u.winner ? '(已中)' : ''}
@@ -123,11 +124,13 @@
                     listDiv.appendChild(div);
                 });
 
-                // 重新綁定所有刪除按鈕事件
+                // 為每個「移除」按鈕綁定事件
                 document.querySelectorAll('.btn-delete').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const id = e.target.getAttribute('data-id');
-                        if(confirm('確定要從資料庫移除這個人嗎？')) {
+                        if(confirm('確定要從資料庫移除這個人嗎？(不可復原)')) {
+                            // 這行會通知 Firebase 刪除資料
+                            // 當資料庫刪除後，上面的 onValue 會再次觸發，自動更新畫面
                             remove(child(usersRef, id))
                                 .catch(err => alert("刪除失敗：" + err.message));
                         }
