@@ -12,15 +12,15 @@
         input, textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box;}
         .btn-admin { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
         .btn-delete { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
-        .btn-test { background: #6f42c1; } /* 紫色按鈕 */
+        .btn-test { background: #6f42c1; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; } 
         .user-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
     <div class="section">
         <h2>🧪 測試功能</h2>
-        <p>快速生成測試資料 (會清空現有名單嗎？不會，是追加)</p>
-        <button id="testDataBtn" class="btn-admin btn-test">產生 300 個測試人員</button>
+        <p>快速生成測試資料</p>
+        <button id="testDataBtn" class="btn-test">產生 300 個測試人員</button>
     </div>
 
     <div class="section">
@@ -37,18 +37,18 @@
 
     <div class="section">
         <h2>📃 名單列表 (<span id="count">0</span> 人)</h2>
-        <div id="userList">載入中...</div>
+        <div id="userList">讀取中...</div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove, child } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-        // TODO: 請填入你的 Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyD0Y08KBDzL0lyfqedDR7CAAjITWkD5J-o",
             authDomain: "chrismas2025prizerolling.firebaseapp.com",
-            databaseURL: "https://chrismas2025prizerolling-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            // 修正：移除了結尾的斜線
+            databaseURL: "https://chrismas2025prizerolling-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "chrismas2025prizerolling",
             storageBucket: "chrismas2025prizerolling.firebasestorage.app",
             messagingSenderId: "930100253668",
@@ -59,35 +59,25 @@
         const db = getDatabase(app);
         const usersRef = ref(db, 'users');
 
-        // --- 測試資料生成功能 ---
+        // --- 測試資料生成 ---
         document.getElementById('testDataBtn').addEventListener('click', () => {
             if(!confirm("確定要插入 300 筆測試資料嗎？")) return;
-            
             const btn = document.getElementById('testDataBtn');
             btn.disabled = true;
             btn.innerText = "寫入中...";
-
-            // 為了效能，我們不使用 300 次 await，而是使用 Promise.all 或者直接發送
-            // 但 Realtime DB 的 push 是異步的，這裡簡單用迴圈即可，firebase sdk 會處理佇列
+            
             const promises = [];
             for(let i=1; i<=300; i++) {
-                promises.push(push(usersRef, {
-                    name: `測試人員${i}`,
-                    winner: false
-                }));
+                promises.push(push(usersRef, { name: `測試人員${i}`, winner: false }));
             }
-
             Promise.all(promises).then(() => {
                 alert("300 筆資料已建立！");
                 btn.disabled = false;
                 btn.innerText = "產生 300 個測試人員";
-            }).catch(e => {
-                alert("錯誤：" + e.message);
-                btn.disabled = false;
             });
         });
 
-        // --- 原有功能：新增 ---
+        // --- 單筆新增 ---
         document.getElementById('addBtn').addEventListener('click', () => {
             const input = document.getElementById('nameInput');
             if (input.value.trim()) {
@@ -96,7 +86,7 @@
             }
         });
 
-        // --- 原有功能：批量匯入 ---
+        // --- 批量匯入 ---
         document.getElementById('importBtn').addEventListener('click', () => {
             try {
                 const list = JSON.parse(document.getElementById('jsonInput').value);
@@ -109,11 +99,12 @@
             } catch(e) { alert("JSON 格式錯誤"); }
         });
 
-        // --- 列表顯示 ---
+        // --- 列表顯示與刪除 ---
         onValue(usersRef, (snapshot) => {
             const listDiv = document.getElementById('userList');
             const data = snapshot.val();
             listDiv.innerHTML = '';
+            
             if (data) {
                 const keys = Object.keys(data);
                 document.getElementById('count').innerText = keys.length;
@@ -121,22 +112,29 @@
                     const u = data[key];
                     const div = document.createElement('div');
                     div.className = 'user-item';
+                    
+                    // 修正：刪除按鈕不使用 onclick，改用 addEventListener
                     div.innerHTML = `
                         <span style="${u.winner ? 'color:green;font-weight:bold' : ''}">
                             ${u.name} ${u.winner ? '(已中)' : ''}
                         </span>
-                        <button class="btn-delete" onclick="this.parentElement.remove()" data-id="${key}">移除</button>
+                        <button class="btn-delete" data-id="${key}">移除</button>
                     `;
                     listDiv.appendChild(div);
                 });
-                // 綁定移除事件
-                document.querySelectorAll('.btn-delete').forEach(b => {
-                    b.addEventListener('click', (e) => {
+
+                // 重新綁定所有刪除按鈕事件
+                document.querySelectorAll('.btn-delete').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
                         const id = e.target.getAttribute('data-id');
-                        if(confirm('確定刪除？')) remove(child(usersRef, id));
+                        if(confirm('確定要從資料庫移除這個人嗎？')) {
+                            remove(child(usersRef, id))
+                                .catch(err => alert("刪除失敗：" + err.message));
+                        }
                     });
                 });
             } else {
+                listDiv.innerHTML = '<p style="text-align:center;color:#888">目前沒有名單</p>';
                 document.getElementById('count').innerText = '0';
             }
         });

@@ -1,12 +1,33 @@
-<script type="module">
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>🎄 聖誕歡樂大抽獎 🎄</title>
+    <link rel="stylesheet" href="style.css">
+    <a href="admin.html" class="admin-link" target="_blank">⚙️ 設定名單</a>
+</head>
+<body>
+    <audio id="bgm" loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="snow-container"></div>
+    <div id="cloud-container"></div>
+
+    <div class="controls">
+        <button id="drawBtn" class="btn">🎅 開始抽獎 🎅</button>
+        <button id="musicBtn" class="btn" style="font-size:16px">🎵 音樂開關</button>
+    </div>
+
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getDatabase, ref, onValue, child, update } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-        // TODO: 請填入你的 Firebase Config (務必包含 databaseURL)
         const firebaseConfig = {
             apiKey: "AIzaSyD0Y08KBDzL0lyfqedDR7CAAjITWkD5J-o",
             authDomain: "chrismas2025prizerolling.firebaseapp.com",
-            databaseURL: "https://chrismas2025prizerolling-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            // 修正：移除了結尾的斜線 '/'
+            databaseURL: "https://chrismas2025prizerolling-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "chrismas2025prizerolling",
             storageBucket: "chrismas2025prizerolling.firebasestorage.app",
             messagingSenderId: "930100253668",
@@ -17,17 +38,17 @@
         const db = getDatabase(app);
         const usersRef = ref(db, 'users');
 
-        let pool = [];         // 候選人名單 (未中獎)
-        let totalWinnerCount = 0; // 已中獎總人數
+        let pool = [];
+        let totalWinnerCount = 0;
         let isDrawing = false;
 
         // 監聽資料庫
         onValue(usersRef, (snapshot) => {
-            if (isDrawing) return; // 抽獎中不更新畫面
+            if (isDrawing) return;
 
             const data = snapshot.val();
             const cloudContainer = document.getElementById('cloud-container');
-            cloudContainer.innerHTML = ''; // 清空
+            cloudContainer.innerHTML = ''; 
             
             pool = [];
             totalWinnerCount = 0;
@@ -36,13 +57,15 @@
                 Object.keys(data).forEach(key => {
                     const user = data[key];
                     if (user.winner) {
-                        totalWinnerCount++; // 統計已中獎人數
+                        totalWinnerCount++;
                     } else {
-                        // 只有 winner: false 的人才會進入 pool
                         pool.push({ id: key, name: user.name });
                         createNameTag(user.name); 
                     }
                 });
+            } else {
+                // 如果沒有資料，顯示提示
+                cloudContainer.innerHTML = '<h1 style="color:gold; text-shadow:2px 2px red;">請先至後台新增名單</h1>';
             }
         });
 
@@ -50,11 +73,9 @@
             const tag = document.createElement('div');
             tag.className = 'name-tag';
             tag.innerText = name;
-            // 初始隨機位置
             tag.style.left = Math.random() * 90 + '%';
             tag.style.top = Math.random() * 90 + '%';
             
-            // 漂浮動畫
             const duration = Math.random() * 3 + 2;
             tag.style.transition = `top ${duration}s ease-in-out, left ${duration}s ease-in-out`;
             
@@ -88,47 +109,32 @@
         }
         createSnow();
 
-        // --- 抽獎邏輯核心 ---
+        // 抽獎按鈕邏輯
         const drawBtn = document.getElementById('drawBtn');
-        
         drawBtn.addEventListener('click', () => {
-            if (pool.length === 0) return alert("所有人都中獎了！或名單為空。");
+            if (pool.length === 0) return alert("名單為空或所有人都已中獎！");
             if (isDrawing) return;
 
-            // 1. 隱藏/清除上一次的中獎者
             document.querySelectorAll('.winner').forEach(el => el.remove());
-            // 恢復其他人顯示
             document.querySelectorAll('.name-tag').forEach(el => el.style.opacity = '1');
 
             isDrawing = true;
             drawBtn.disabled = true;
             drawBtn.innerText = "抽獎中...";
 
-            // 2. 決定這一輪抽幾個人
-            // 修正邏輯：如果已中獎人數少於 66 人，就一次抽 3 個。
-            // (也就是第 1~66 名中獎者是批次的，第 67 名開始是單獨的)
+            // 規則：前66人中獎者 (22輪) 一次抽3個，之後一次抽1個
             let batchSize = 1;
             if (totalWinnerCount < 66) {
                 batchSize = 3;
             }
-            
-            // 防呆：如果剩餘人數不足，就只抽剩下的
-            if (pool.length < batchSize) {
-                batchSize = pool.length;
-            }
+            if (pool.length < batchSize) batchSize = pool.length;
 
-            console.log(`目前已中獎: ${totalWinnerCount}, 本次抽取: ${batchSize} 人`);
-
-            // 3. 視覺特效：加速漂浮
             const tags = document.querySelectorAll('.name-tag');
             tags.forEach(tag => tag.style.transition = "all 0.1s linear");
 
-            // 4. 閃爍動畫
             let counter = 0;
             const shuffleInterval = setInterval(() => {
                 tags.forEach(t => t.style.background = 'rgba(255,0,0,0.3)');
-                
-                // 隨機亮起
                 for(let i=0; i<Math.min(batchSize, tags.length); i++){
                     const randomTag = tags[Math.floor(Math.random() * tags.length)];
                     if(randomTag) randomTag.style.background = 'gold';
@@ -153,12 +159,10 @@
                 tempPool.splice(randomIndex, 1);
             }
 
-            // 顯示中獎者 UI
             const container = document.getElementById('cloud-container');
             document.querySelectorAll('.name-tag').forEach(t => t.style.opacity = '0.1');
 
             const updates = {}; 
-
             winners.forEach((winner, index) => {
                 updates[`/users/${winner.id}/winner`] = true;
 
@@ -167,35 +171,33 @@
                 if (count > 1) winTag.classList.add('multi'); 
                 winTag.innerText = winner.name;
                 
-                // 計算位置
                 let leftPos = 50;
                 if (count === 3) {
                     if (index === 0) leftPos = 20;
                     if (index === 1) leftPos = 50;
                     if (index === 2) leftPos = 80;
-                } else if (count === 2) { // 萬一剩2人
+                } else if (count === 2) {
                     leftPos = (index === 0) ? 35 : 65;
                 }
 
                 winTag.style.left = leftPos + '%';
                 winTag.style.top = '50%';
-                
                 container.appendChild(winTag);
             });
 
             setTimeout(() => {
                 update(ref(db), updates);
-                
                 isDrawing = false;
                 drawBtn.disabled = false;
                 drawBtn.innerText = "🎅 開始抽獎 🎅";
             }, 1000);
         }
 
-        // 音樂控制
         const audio = document.getElementById('bgm');
         document.getElementById('musicBtn').addEventListener('click', () => {
             if (audio.paused) audio.play();
             else audio.pause();
         });
     </script>
+</body>
+</html>
