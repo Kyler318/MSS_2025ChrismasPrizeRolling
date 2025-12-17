@@ -160,7 +160,7 @@ body {
     width: 90%; 
     
     /* 🔥 修改重點 2：設定最大寬度，避免在大螢幕上變得太巨大 */
-    max-width: 1200px; 
+    max-width: 1300px; 
     
     height: auto;
     top: -50px;          /* 靠上對齊 */
