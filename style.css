@@ -30,39 +30,28 @@ body {
     position: relative;
     width: 100%;
     height: 80vh;
-    /* 移除 flex 設定，因為我們現在使用絕對定位 */
-    /* display: flex;  <-- 不需要了 */
-    /* justify-content: center; */
-    /* align-items: center; */
     perspective: 1000px;
+    z-index: 5; /* 確保名字顯示在裝飾品上方 */
 }
 
 /* 漂浮的名字 */
 .name-tag {
     position: absolute;
-    /* 初始歸零，透過 transform 移動 */
     left: 0; 
     top: 0; 
-    font-size: 14px; /* 稍微調大一點點 */
+    font-size: 14px;
     padding: 5px 10px;
     background: rgba(255, 0, 0, 0.3);
     border-radius: 20px;
     border: 1px solid gold;
     color: #ffd700;
-    
-    /* 優化：移除 box-shadow 或減少擴散半徑以提升效能 */
-    /* box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); */
-    
     white-space: nowrap;
     cursor: pointer;
-    
-    /* 效能優化關鍵：告訴瀏覽器 transform 會變動 */
     will-change: transform;
-    /* transition 在 JS 中動態設定，這裡作為備用 */
     transition: transform 4s ease-in-out;
 }
 
-/* 中獎者樣式 - 需要覆蓋原本的 transform */
+/* 中獎者樣式 */
 .winner {
     position: absolute;
     font-size: 30px !important;
@@ -70,16 +59,10 @@ body {
     z-index: 1000 !important;
     border: 5px solid gold !important;
     box-shadow: 0 0 50px gold, 0 0 100px red !important;
-    
-    /* 強制置中設定 */
     top: 50% !important; 
-    /* left 由 JS 動態計算 (20%, 50%, 80%)，不需要 !important */
-    
-    /* 這裡使用 transform 來修正中心點 */
     transform: translate(-50%, -50%) scale(1.5) !important;
-    
     animation: pulse 1s infinite;
-    transition: all 0.5s ease !important; /* 中獎時的過渡效果 */
+    transition: all 0.5s ease !important;
 }
 
 @keyframes pulse {
@@ -105,7 +88,6 @@ body {
 .btn:active { transform: scale(0.95); }
 .controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center;}
 
-/* Admin Link */
 .admin-link {
     position: fixed;
     top: 20px;
@@ -123,4 +105,77 @@ body {
 .admin-link:hover {
     background: #c41e3a;
     color: white;
+}
+
+/* ========================================= */
+/* 🔥🔥🔥 圖片裝飾設定區域 🔥🔥🔥 */
+/* ========================================= */
+
+#background-decorations {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* 讓滑鼠穿透圖片，不會擋到點擊 */
+    z-index: 2; /* 層級：在雪花(1)上面，但在名字(5)下面 */
+    overflow: hidden;
+}
+
+.deco-img {
+    position: absolute;
+    opacity: 0.95; /* 圖片透明度，1 為不透明 */
+    filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); /* 加一點陰影更有立體感 */
+}
+
+/* 🎄 1. 聖誕樹設定 */
+.deco-tree {
+    /* --- 📝 調整這裡來改變位置與大小 --- */
+    width: 500px;       /* 圖片寬度 (設越大圖越大) */
+    height: auto;       /* 高度自動 */
+    
+    bottom: -20px;      /* 靠下對齊 (負值代表往下移一點) */
+    left: -150px;        /* 靠左對齊 (負值代表往左移一點) */
+    /* -------------------------------- */
+}
+
+/* 🎅 2. 聖誕老人設定 */
+.deco-santa {
+    /* --- 📝 調整這裡來改變位置與大小 --- */
+    width: 500px;       /* 圖片寬度 */
+    height: auto;
+    
+    bottom: -50px;       /* 距離底部 30px */
+    right: -50px;        /* 距離右邊 50px */
+    /* -------------------------------- */
+    
+    /* 聖誕老人的漂浮動畫 */
+    animation: floatSanta 3s ease-in-out infinite;
+}
+
+/* 🧦 3. 聖誕襪設定 */
+.deco-sock {
+    /* --- 📝 調整這裡來改變位置與大小 --- */
+    width: 1200px;       /* 圖片寬度 */
+    height: auto;
+    
+    top: -50px;         /* 靠上對齊 (負值代表往上藏一點) */
+    right: 100px;       /* 距離右邊 150px */
+    left: 0px;
+    /* -------------------------------- */
+    
+    transform-origin: top center; /* 設定旋轉中心在頂部 */
+    animation: swingSock 3s ease-in-out infinite; /* 搖晃動畫 */
+}
+
+/* 動畫設定 */
+@keyframes floatSanta {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); } /* 上下浮動 15px */
+}
+
+@keyframes swingSock {
+    0% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }  /* 左右搖晃 3度 */
+    100% { transform: rotate(-3deg); }
 }
