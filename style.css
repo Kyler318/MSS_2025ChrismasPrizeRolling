@@ -158,10 +158,9 @@ body {
     /* --- 📝 調整這裡來改變位置與大小 --- */
     width: 1200px;       /* 圖片寬度 */
     height: auto;
-    
     top: -50px;         /* 靠上對齊 (負值代表往上藏一點) */
-    right: 100px;       /* 距離右邊 150px */
-    left: 0px;
+    position: center;       /* 距離右邊 150px */
+
     /* -------------------------------- */
     
     transform-origin: top center; /* 設定旋轉中心在頂部 */
