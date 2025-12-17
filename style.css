@@ -154,15 +154,22 @@ body {
 }
 
 /* 🧦 3. 聖誕襪設定 */
+/* 🧦 3. 聖誕襪設定 */
 .deco-sock {
-    /* --- 📝 調整這裡來改變位置與大小 --- */
-    width: 1200px;       /* 圖片寬度 */
-    height: auto;
-    top: -50px;         /* 靠上對齊 (負值代表往上藏一點) */
-    position: center;       /* 距離右邊 150px */
-
-    /* -------------------------------- */
+    /* 🔥 修改重點 1：寬度改用百分比，讓它隨螢幕縮放 */
+    width: 90%; 
     
+    /* 🔥 修改重點 2：設定最大寬度，避免在大螢幕上變得太巨大 */
+    max-width: 1200px; 
+    
+    height: auto;
+    top: -50px;          /* 靠上對齊 */
+    
+    /* 🔥 修改重點 3：維持絕對定位置中 */
+    left: 0;
+    right: 0;
+    margin: auto;        /* 配合 left:0 和 right:0 達成置中 */
+
     transform-origin: top center; /* 設定旋轉中心在頂部 */
     animation: swingSock 3s ease-in-out infinite; /* 搖晃動畫 */
 }
@@ -177,4 +184,85 @@ body {
     0% { transform: rotate(-3deg); }
     50% { transform: rotate(3deg); }  /* 左右搖晃 3度 */
     100% { transform: rotate(-3deg); }
+}
+
+/* ========================================= */
+/* 📜 新增：獲獎名單面板樣式 */
+/* ========================================= */
+
+#history-panel {
+    position: fixed;
+    top: 0;
+    right: -400px; /* 預設隱藏在右側外面 */
+    width: 350px;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85); /* 深色半透明背景 */
+    backdrop-filter: blur(10px); /* 毛玻璃效果 */
+    z-index: 99999;
+    transition: right 0.3s ease-in-out;
+    border-left: 2px solid gold;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+}
+
+#history-panel.open {
+    right: 0; /* 滑入顯示 */
+}
+
+.history-header {
+    padding: 20px;
+    background: #c41e3a;
+    color: gold;
+    text-align: center;
+    font-size: 28px;
+    border-bottom: 2px solid gold;
+    position: relative;
+}
+
+#close-history-btn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.history-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.history-item {
+    background: rgba(255, 255, 255, 0.1);
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.history-round {
+    color: gold;
+    font-size: 18px;
+    margin-bottom: 5px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+    padding-bottom: 3px;
+}
+
+.history-names {
+    color: white;
+    font-size: 16px;
+    line-height: 1.4;
+    font-family: sans-serif; /* 名字用清晰字體 */
+}
+
+/* 歷史紀錄按鈕 */
+#historyBtn {
+    font-size: 16px;
+    background: #2c3e50;
+    margin-left: 10px;
 }

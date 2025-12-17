@@ -8,25 +8,37 @@
 </head>
 <body>
     <div id="snow-container"></div>
+    
     <div id="background-decorations">
         <img src="chrismas tree.png" class="deco-img deco-tree" alt="聖誕樹">
-        
         <img src="Santa Claus.png" class="deco-img deco-santa" alt="聖誕老人">
-        
-        <img src="chrismas sock.png" class="deco-img deco-sock" alt="聖誕襪">   
+        <img src="chrismas sock.png" class="deco-img deco-sock" alt="聖誕襪">
     </div>
+
     <div id="cloud-container"></div>
+
+    <div id="history-panel">
+        <div class="history-header">
+            <button id="close-history-btn">✕</button>
+            📜 獲獎榜單
+        </div>
+        <div class="history-content" id="history-list">
+            <div style="text-align:center; color:#aaa; margin-top:20px;">暫無紀錄</div>
+        </div>
+    </div>
 
     <div class="controls">
         <span id="round-info" style="color: gold; font-size: 24px; margin-right: 20px; text-shadow: 0 2px 5px rgba(0,0,0,0.5);">
         🏆 第 1 輪
         </span>
         <button id="drawBtn" class="btn">🎅 開始抽獎 🎅</button>
+        <button id="historyBtn" class="btn">📜 名單</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getDatabase, ref, onValue, child, update } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        // ✅ 新增 'push' 匯入
+        import { getDatabase, ref, onValue, update, push } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD0Y08KBDzL0lyfqedDR7CAAjITWkD5J-o",
@@ -41,17 +53,15 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const usersRef = ref(db, 'users');
+        const historyRef = ref(db, 'history'); // 新增：歷史紀錄節點
 
         let pool = [];
         let totalWinnerCount = 0;
         let isDrawing = false;
 
-        // 監聽資料庫
+        // 1. 監聽使用者資料
         onValue(usersRef, (snapshot) => {
             const data = snapshot.val();
-            
-            // 修正重點 1：先計算數據 (移到 isDrawing 檢查之前)
-            // 這樣無論是否在抽獎動畫中，數據和輪數都會即時更新
             let tempPool = [];
             let tempWinnerCount = 0;
 
@@ -66,37 +76,66 @@
                 });
             }
 
-            // 更新全域變數
             pool = tempPool;
             totalWinnerCount = tempWinnerCount;
-
-            // 修正重點 2：即時更新輪數文字
             updateRoundInfo();
 
-            // 3. 如果正在抽獎，停止「重繪 DOM」，以免打斷動畫或清空中獎者展示
-            // (只阻擋下方的 createNameTag，不阻擋上方的 updateRoundInfo)
             if (isDrawing) return;
 
-            // 4. 重繪漂浮名單
             const cloudContainer = document.getElementById('cloud-container');
             cloudContainer.innerHTML = ''; 
             
             if (pool.length > 0) {
                 pool.forEach(p => createNameTag(p.name));
             } else if (totalWinnerCount === 0) {
-                 // 只有在真的沒資料且沒人中獎時才顯示提示
                  cloudContainer.innerHTML = '<h1 style="color:gold; text-shadow:2px 2px red;">請先至後台新增名單</h1>';
             }
         });
 
-        function updateRoundInfo() {
-            let currentRound = 1;
-            // 規則：前66人(22輪)每輪3人，之後每輪1人
-            if (totalWinnerCount < 66) {
-                currentRound = Math.floor(totalWinnerCount / 3) + 1;
+        // 2. 監聽歷史紀錄並更新面板
+        onValue(historyRef, (snapshot) => {
+            const data = snapshot.val();
+            const listDiv = document.getElementById('history-list');
+            listDiv.innerHTML = '';
+
+            if (data) {
+                // 將物件轉陣列並反轉 (最新的在上面)
+                const historyArr = Object.values(data).reverse();
+                
+                historyArr.forEach(record => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    
+                    // 格式化時間
+                    const time = new Date(record.timestamp);
+                    const timeStr = `${time.getHours()}:${String(time.getMinutes()).padStart(2, '0')}`;
+
+                    item.innerHTML = `
+                        <div class="history-round">
+                            🏆 第 ${record.round} 輪 <span style="font-size:12px; float:right; opacity:0.7">${timeStr}</span>
+                        </div>
+                        <div class="history-names">
+                            ${record.names.join('、')}
+                        </div>
+                    `;
+                    listDiv.appendChild(item);
+                });
             } else {
-                currentRound = 22 + (totalWinnerCount - 66) + 1;
+                listDiv.innerHTML = '<div style="text-align:center; color:#aaa; margin-top:20px;">尚未開始抽獎</div>';
             }
+        });
+
+        // 計算當前輪數的邏輯 (提取出來共用)
+        function calculateRound(count) {
+            if (count < 66) {
+                return Math.floor(count / 3) + 1;
+            } else {
+                return 22 + (count - 66) + 1;
+            }
+        }
+
+        function updateRoundInfo() {
+            const currentRound = calculateRound(totalWinnerCount);
             document.getElementById('round-info').innerText = `🏆 第 ${currentRound} 輪`;
         }
 
@@ -105,7 +144,6 @@
             tag.className = 'name-tag';
             tag.innerText = name;
             
-            // 使用 transform 替代 top/left 以提升效能
             const startX = Math.random() * 90; 
             const startY = Math.random() * 80;
             tag.style.transform = `translate3d(${startX}vw, ${startY}vh, 0)`;
@@ -129,7 +167,6 @@
             }, 4000);
         }
 
-        // 雪花特效
         function createSnow() {
             const snowContainer = document.getElementById('snow-container');
             for(let i=0; i<30; i++){
@@ -144,7 +181,7 @@
         }
         createSnow();
 
-        // 抽獎按鈕邏輯
+        // 抽獎邏輯
         const drawBtn = document.getElementById('drawBtn');
         drawBtn.addEventListener('click', () => {
             if (pool.length === 0) return alert("名單為空或所有人都已中獎！");
@@ -196,8 +233,11 @@
             document.querySelectorAll('.name-tag').forEach(t => t.style.opacity = '0.1');
 
             const updates = {}; 
+            const winnerNames = []; // 暫存這次的中獎名單
+
             winners.forEach((winner, index) => {
                 updates[`/users/${winner.id}/winner`] = true;
+                winnerNames.push(winner.name);
 
                 const winTag = document.createElement('div');
                 winTag.className = 'name-tag winner'; 
@@ -217,18 +257,35 @@
                 container.appendChild(winTag);
             });
 
+            // 🔥 新增：寫入歷史紀錄
+            // 計算這是第幾輪 (使用目前的獲獎人數計算)
+            const currentRound = calculateRound(totalWinnerCount);
+            
+            // 將這筆紀錄推送到 Firebase
+            push(historyRef, {
+                round: currentRound,
+                names: winnerNames,
+                timestamp: Date.now()
+            });
+
             setTimeout(() => {
                 update(ref(db), updates);
                 isDrawing = false;
                 drawBtn.disabled = false;
                 drawBtn.innerText = "🎅 開始抽獎 🎅";
+                // 自動開啟歷史面板讓大家看一眼 (可選)
+                // document.getElementById('history-panel').classList.add('open');
             }, 1000);
         }
 
         const audio = document.getElementById('bgm');
-        document.getElementById('musicBtn').addEventListener('click', () => {
-            if (audio.paused) audio.play();
-            else audio.pause();
+        // 歷史面板開關邏輯
+        const historyPanel = document.getElementById('history-panel');
+        document.getElementById('historyBtn').addEventListener('click', () => {
+            historyPanel.classList.add('open');
+        });
+        document.getElementById('close-history-btn').addEventListener('click', () => {
+            historyPanel.classList.remove('open');
         });
     </script>
 </body>
